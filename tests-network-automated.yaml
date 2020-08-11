@@ -1,0 +1,123 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+  labels:
+    app: web-linux
+spec:
+  nodeSelector:
+    kubernetes.io/os: linux
+  containers:
+  - name: nginx
+    image: nginx:alpine
+    ports:
+    - containerPort: 80
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: alpine
+spec:
+  nodeSelector:
+    kubernetes.io/os: linux
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+            - key: app
+              operator: In
+              values:
+              - web-linux
+          topologyKey: failure-domain.beta.kubernetes.io/zone
+  containers:
+  - name: alpine
+    image: nicolaka/netshoot
+    command:
+    - /bin/linux-tests.sh
+    volumeMounts:
+    - name: linux-tests-volume
+      mountPath: /bin/linux-tests.sh
+      readOnly: true
+      subPath: linux-tests.sh
+  volumes:
+  - name: linux-tests-volume
+    configMap:
+      defaultMode: 0700
+      name: linux-tests
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx
+spec:
+  selector:
+    app: web-linux
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: iis
+  labels:
+    app: web-windows
+spec:
+  nodeSelector:
+    kubernetes.io/os: windows
+  containers:
+  - name: iis
+    image: mcr.microsoft.com/windows/servercore/iis:windowsservercore-ltsc2019
+    ports:
+    - containerPort: 80
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: wscore
+spec:
+  nodeSelector:
+    kubernetes.io/os: windows
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+            - key: app
+              operator: In
+              values:
+              - web-windows
+          topologyKey: failure-domain.beta.kubernetes.io/zone
+  containers:
+  - name: wscore
+    image: mcr.microsoft.com/windows/servercore:ltsc2019
+    command: ["powershell"]
+    args: ["-c", "C:\\bin\\windows-tests.ps1"]
+    volumeMounts:
+    - name: windows-tests-volume
+      mountPath: C:\bin
+      readOnly: true
+  volumes:
+  - name: windows-tests-volume
+    configMap:
+      defaultMode: 0700
+      name: windows-tests
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: iis
+spec:
+  selector:
+    app: web-windows
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+

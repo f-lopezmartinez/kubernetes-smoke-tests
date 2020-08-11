@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: iis
+  labels:
+    app: web
+spec:
+  nodeSelector:
+    kubernetes.io/os: windows
+  containers:
+  - name: iis
+    image: mcr.microsoft.com/windows/servercore/iis:windowsservercore-ltsc2019
+    ports:
+    - containerPort: 80
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: alpine
+spec:
+  nodeSelector:
+    kubernetes.io/os: linux
+  containers:
+  - name: alpine
+    image: nicolaka/netshoot
+    command:
+      - sleep
+      - "500000"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: iis
+spec:
+  selector:
+    app: web
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+
